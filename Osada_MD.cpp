@@ -4,6 +4,87 @@
 #include "start_cond.h"
 #include <iostream>
 #include <fstream>
+#include <cmath> // Для использования функции sqrt() и pow()
+#include <iomanip> // Для использования std::fixed и std::setprecision
+
+
+//Выносим запись о информации кординат 
+void writeCoordinateVector(std::ofstream& outputFile, int index) {
+    outputFile << "r" << index + 1 << " = (" << coordx[index] << "; " << coordy[index] << "; " << coordz[index] << ")" << std::endl;
+}
+
+//Выносим запись и вычисления о разности координат векторов 
+void writeVectorDifference(std::ofstream& outputFile, int index1, int index2) {
+    double diffx = coordx[index1] - coordx[index2];
+    double diffy = coordy[index1] - coordy[index2];
+    double diffz = coordz[index1] - coordz[index2];
+
+    outputFile << "r" << index1 + 1 << index2 + 1 << " = (" << diffx << "; " << diffy << "; " << diffz << ")" << std::endl;
+}
+
+// Метод для вычисления и записи абсолютного значения векторов
+void writeVectorAbsolute(std::ofstream& outputFile, int index1, int index2) {
+    double diffx = coordx[index1] - coordx[index2];
+    double diffy = coordy[index1] - coordy[index2];
+    double diffz = coordz[index1] - coordz[index2];
+    double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
+
+    outputFile << "r" << index1 + 1 << index2 + 1 << "_abs = " << distance << std::endl;
+}
+
+// Метод для записи информации о делении разности векторов на абсолютное значение
+void writeVectorDivision(std::ofstream& outputFile, int index1, int index2) {
+    double diffx = coordx[index1] - coordx[index2];
+    double diffy = coordy[index1] - coordy[index2];
+    double diffz = coordz[index1] - coordz[index2];
+    double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
+    
+    // Запись разности векторов, деленной на абсолютное значение
+    outputFile << "(rx" << index1 + 1 << index2 + 1 << "; ry" << index1 + 1 << index2 + 1 << "; rz" << index1 + 1 << index2 + 1 << ") / r" << index1 + 1 << index2 + 1 << "_abs = (" <<
+        diffx / distance << "; "
+        << diffy / distance << "; "
+        << diffz / distance
+        << ")" << std::endl;
+}
+
+// Метод для записи информации о скорости частицы
+void writeParticleVelocity(std::ofstream& outputFile, int index) {
+    // Запись скорости частицы
+    outputFile << "v" << index + 1 << " = (vx" << index + 1 << "; vy" << index + 1 << "; vz" << index + 1 << ") = (" << vx[index] << "; " << vy[index] << "; " << vz[index] << ")" << std::endl;
+}
+
+void write_to_file(){
+    // Открытие файла для записи
+    std::ofstream outputFile("Osada_MD_3.txt");
+    if (!outputFile.is_open()) {
+        std::cerr << "Ошибка: не удалось открыть файл для записи\n";
+        return;
+    }
+    
+    // Установка точности для всего потока вывода
+    outputFile << std::fixed << std::setprecision(8);
+    // Запись в файл
+    outputFile << "Step = 0" << std::endl;
+    // Запись векторов координат в файл
+    for (int i = 0; i < NUMBERPARTICLES; ++i) {
+        writeCoordinateVector(outputFile, i);
+    }
+
+    writeVectorDifference(outputFile, 0, 1);
+    writeVectorDifference(outputFile, 1, 0);
+
+    writeVectorAbsolute(outputFile, 0, 1);
+    writeVectorAbsolute(outputFile, 0, 1);
+
+    writeVectorDivision(outputFile, 0, 1);
+    writeVectorDivision(outputFile, 1, 0);
+
+    for (int i = 0; i < NUMBERPARTICLES; ++i) {
+        writeParticleVelocity(outputFile, i);
+    }
+    
+    outputFile.close(); // Закрытие файла
+}
 
 void allocateMemory() {
     // Массив указателей на указатели
@@ -24,24 +105,6 @@ void allocateMemory() {
     }
 }
 
-void write_to_file(){
-    // Открытие файла для записи
-    std::ofstream outputFile("Osada_MD_2.txt");
-    if (!outputFile.is_open()) {
-        std::cerr << "Ошибка: не удалось открыть файл для записи\n";
-        return;
-    }
-    
-    // Запись в файл
-    outputFile.precision(8);
-    outputFile << "\nNumber of Particles = " << NUMBERPARTICLES << std::endl;
-    outputFile << "Number of Steps = " << NSTEPS << std::endl;
-    outputFile << "Size of System on X = " << NUMCRIST_X << std::endl;
-    outputFile << "Boltzmann Constant = " << K_B << std::endl;
-    outputFile << "Volume = " << VOLUME << std::endl;
-    outputFile.close(); // Закрытие файла
-}
-
 // Функция для освобождения памяти
 void freeMemory() {
     free(coordx);
@@ -55,18 +118,15 @@ void freeMemory() {
     free(Fz);
 }
 
-
-
 void simulation(){
     allocateMemory();
+    start_cond_two_particles();
     write_to_file();
-    freeMemory;
+    freeMemory();
 }
 
 int main(){
     simulation();
-
-    return 0;
 }
 
 
