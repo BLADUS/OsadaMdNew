@@ -10,7 +10,9 @@
 
 //Выносим запись о информации кординат 
 void writeCoordinateVector(std::ofstream& outputFile, int index) {
-    outputFile << "r" << index + 1 << " = (" << coordx[index] << "; " << coordy[index] << "; " << coordz[index] << ")" << std::endl;
+outputFile << "r" << index + 1 << " = (rx" << index + 1 << "; ry" 
+<< index + 1 << "; rz" << index + 1 << ") = (" << coordx[index] << "; " 
+<< coordy[index] << "; " << coordz[index] << ")" << std::endl;
 }
 
 //Выносим запись и вычисления о разности координат векторов 
@@ -19,7 +21,7 @@ void writeVectorDifference(std::ofstream& outputFile, int index1, int index2) {
     double diffy = coordy[index1] - coordy[index2];
     double diffz = coordz[index1] - coordz[index2];
 
-    outputFile << "r" << index1 + 1 << index2 + 1 << " = (" << diffx << "; " << diffy << "; " << diffz << ")" << std::endl;
+    outputFile << "r" << index1 + 1 << index2 + 1 << " = (rx" << index1 + 1 << "; ry" << index1 + 1 << "; rz" << index1 + 1 << ") = (" << diffx << "; " << diffy << "; " << diffz << ")" << std::endl;
 }
 
 // Метод для вычисления и записи абсолютного значения векторов
@@ -47,15 +49,95 @@ void writeVectorDivision(std::ofstream& outputFile, int index1, int index2) {
         << ")" << std::endl;
 }
 
+
+void processAllVectorOperations(std::ofstream& outputFile, int numParticles) {
+    for (int i = 0; i < numParticles; ++i) {
+        for (int j = 0; j < numParticles; ++j) {
+            if (i != j) {
+                // Разность векторов
+                writeVectorDifference(outputFile, i, j);
+            }
+        }
+    }
+
+    for (int i = 0; i < numParticles; ++i) {
+        for (int j = 0; j < numParticles; ++j) {
+            if (i != j) {
+                // Абсолютное значение разности векторов
+                writeVectorAbsolute(outputFile, i, j);
+            }
+        }
+    }
+
+    for (int i = 0; i < numParticles; ++i) {
+        for (int j = 0; j < numParticles; ++j) {
+            if (i != j) {
+                // Деление векторов
+                writeVectorDivision(outputFile, i, j);
+            }
+        }
+    }
+}
+
+
+
 // Метод для записи информации о скорости частицы
 void writeParticleVelocity(std::ofstream& outputFile, int index) {
     // Запись скорости частицы
     outputFile << "v" << index + 1 << " = (vx" << index + 1 << "; vy" << index + 1 << "; vz" << index + 1 << ") = (" << vx[index] << "; " << vy[index] << "; " << vz[index] << ")" << std::endl;
 }
 
+void calculate_forces(std::ofstream& outputFile) {
+    // Проходим по парам частиц
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i) {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j) {
+            // Вычисляем расстояние между частицами
+            double distance = sqrt(pow(coordx[i] - coordx[j], 2) + pow(coordy[i] - coordy[j], 2) + pow(coordz[i] - coordz[j], 2));
+
+            // Вычисляем силу между частицами
+            double F = 24 * EPS / SIGMA * (2 * pow(SIGMA / distance, 13) - pow(SIGMA / distance, 7));
+
+            // Рассчитываем составляющие силы по осям X, Y, Z
+            double Fx_i = F * (coordx[i] - coordx[j]) / distance;
+            double Fy_i = F * (coordy[i] - coordy[j]) / distance;
+            double Fz_i = F * (coordz[i] - coordz[j]) / distance;
+
+            double Fx_j = -Fx_i;
+            double Fy_j = -Fy_i;
+            double Fz_j = -Fz_i;
+
+            // Записываем данные в файл
+            outputFile << "F = " << F << "\n" // Запись силы между частицами
+                       << "F" << i + 1 << " = (Fx" << i + 1 << "; Fy" << i + 1 << "; Fz" << i + 1 << ") = (" << Fx_i << "; " << Fy_i << "; " << Fz_i << ")\n" // Запись силы, действующей на первую частицу
+                       << "F" << j + 1 << " = (Fx" << j + 1 << "; Fy" << j + 1 << "; Fz" << j + 1 << ") = (" << Fx_j << "; " << Fy_j << "; " << Fz_j << ")\n"; // Запись силы, действующей на вторую частицу
+        }
+    }
+}
+
+void calculate_potential_energy(std::ofstream& outputFile) {
+    // Проходим по парам частиц
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i) {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j) {
+            // Вычисляем расстояние между частицами
+            double diffx = coordx[i] - coordx[j];
+            double diffy = coordy[i] - coordy[j];
+            double diffz = coordz[i] - coordz[j];
+            double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
+
+            // Вычисляем потенциальную энергию между частицами
+            double U12 = 4 * EPS * (std::pow(SIGMA / distance, 12) - std::pow(SIGMA / distance, 6));
+            double U21 = U12; // Поскольку потенциальная энергия симметрична, U12 = U21
+
+            // Записываем данные в файл
+            outputFile << "U" << i + 1 << j + 1 << " = " << U12 << "\n"; // Запись потенциальной энергии между частицами
+            outputFile << "U" << j + 1 << i + 1 << " = " << U21 << "\n"; // Запись потенциальной энергии между частицами
+        }
+    }
+}
+
 void write_to_file(){
     // Открытие файла для записи
-    std::ofstream outputFile("Osada_MD_3.txt");
+    std::ofstream outputFile("Osada_MD_4.txt");
     if (!outputFile.is_open()) {
         std::cerr << "Ошибка: не удалось открыть файл для записи\n";
         return;
@@ -70,18 +152,14 @@ void write_to_file(){
         writeCoordinateVector(outputFile, i);
     }
 
-    writeVectorDifference(outputFile, 0, 1);
-    writeVectorDifference(outputFile, 1, 0);
-
-    writeVectorAbsolute(outputFile, 0, 1);
-    writeVectorAbsolute(outputFile, 0, 1);
-
-    writeVectorDivision(outputFile, 0, 1);
-    writeVectorDivision(outputFile, 1, 0);
+     processAllVectorOperations(outputFile, NUMBERPARTICLES);
 
     for (int i = 0; i < NUMBERPARTICLES; ++i) {
         writeParticleVelocity(outputFile, i);
     }
+    
+    calculate_potential_energy(outputFile);
+    calculate_forces(outputFile);
     
     outputFile.close(); // Закрытие файла
 }
