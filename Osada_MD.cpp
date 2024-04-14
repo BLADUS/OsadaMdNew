@@ -58,8 +58,64 @@ double calculateVectorAbsolute(int index1, int index2) {
     double diffx, diffy, diffz;
     std::tie(diffx, diffy, diffz) = calculateCoordinateDifference(index1, index2);
     double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
+
     return distance;
 }
+
+// Метод для вычисления силы между двумя частицами
+double calculateForce(int index1, int index2, double distance) {
+    // Вычисляем силу между частицами
+    return 24 * EPS / SIGMA * (2 * pow(SIGMA / distance, 13) - pow(SIGMA / distance, 7));
+}
+
+// Метод для вычисления вектора силы по осям X, Y, Z
+std::tuple<double, double, double> calculateForceVector(int index1, int index2) {
+    double distance = calculateVectorAbsolute(index1, index2);
+    // Вычисляем силу между частицами
+    double F = calculateForce(index1, index2, distance);
+
+    // Рассчитываем составляющие силы по осям X, Y, Z
+    double Fx_i = (F * (coordx[index1] - coordx[index2]) / distance) + 0.0;
+    double Fy_i = (F * (coordy[index1] - coordy[index2]) / distance) + 0.0;
+    double Fz_i = (F * (coordz[index1] - coordz[index2]) / distance) + 0.0;
+
+    return std::make_tuple(Fx_i, Fy_i, Fz_i);
+}
+
+// Метод для вычисления потенциальной энергии между двумя частицами
+double calculatePotentialEnergy(int index1, int index2) {
+    // Вычисляем разность координат между частицами
+    double diffx = coordx[index1] - coordx[index2];
+    double diffy = coordy[index1] - coordy[index2];
+    double diffz = coordz[index1] - coordz[index2];
+    
+    // Вычисляем расстояние между частицами
+    double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
+
+    // Вычисляем потенциальную энергию между частицами
+    return 4 * EPS * (std::pow(SIGMA / distance, 12) - std::pow(SIGMA / distance, 6)) - UCUT;
+}
+
+void calculateVerleCoord() 
+{
+    for (size_t i = 0; i < NUMBERPARTICLES; i++)
+    {
+    coordx[i] = coordx[i] + vx[i] * STEP + Fx[i] * pow(STEP, 2) / (2 * MASS); 
+	coordy[i] = coordy[i] + vy[i] * STEP + Fy[i] * pow(STEP, 2) / (2 * MASS);
+	coordz[i] = coordz[i] + vz[i] * STEP + Fz[i] * pow(STEP, 2) / (2 * MASS);
+    }
+}
+
+void calculateVerleVelocity()
+{
+     for (size_t i = 0; i < NUMBERPARTICLES; i++)
+    {
+    vx[i] = vx[i] + Fx[i] / (2 * MASS) * STEP; 
+	vy[i] = vy[i] + Fy[i] / (2 * MASS) * STEP;
+	vz[i] = vz[i] + Fz[i] / (2 * MASS) * STEP;
+    }
+}
+
 
 /////////////////////////////////////////////////WRITE/////////////////////////////////////////////////
 //Выносим запись о информации кординат 
@@ -104,6 +160,44 @@ void writeParticleVelocity(std::ofstream& outputFile, int index) {
     outputFile << "v" << index + 1 << " = (vx" << index + 1 << "; vy" << index + 1 << "; vz" << index + 1 << ") = (" << vx[index] << "; " << vy[index] << "; " << vz[index] << ")" << std::endl;
 }
 
+// Метод для записи силы между частицами в файл
+void writeForce(std::ofstream& outputFile) {
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i) {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j) {
+            double distance = sqrt(pow(coordx[i] - coordx[j], 2) + pow(coordy[i] - coordy[j], 2) + pow(coordz[i] - coordz[j], 2));
+            double F = calculateForce(i, j, distance);
+            outputFile << "F" << " = " << F << "\n";
+        }
+    }
+}
+
+// Метод для записи вектора силы в файл
+void writeForceVector(std::ofstream& outputFile) {
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i) {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j) {
+            double distance = sqrt(pow(coordx[i] - coordx[j], 2) + pow(coordy[i] - coordy[j], 2) + pow(coordz[i] - coordz[j], 2));
+            double Fx_i, Fy_i, Fz_i;
+            std::tie(Fx_i, Fy_i, Fz_i) = calculateForceVector(i, j);
+             outputFile << "F" << i + 1 << " = (Fx" << i + 1 << "; Fy" << i + 1 
+             << "; Fz" << i + 1 << ") = (" << Fx_i << "; " << Fy_i << "; " << Fz_i << ")\n";
+        }
+    }
+
+}
+
+// Метод для записи потенциальной энергии между частицами в файл
+void writePotentialEnergy(std::ofstream& outputFile) {
+    // Проходим по парам частиц
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i) {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j) {
+            // Вычисляем потенциальную энергию между частицами
+            double U = calculatePotentialEnergy(i, j);
+
+            // Записываем данные в файл
+            outputFile << "U" << i + 1 << j + 1 << " = " << U << "\n"; // Запись потенциальной энергии между частицами
+        }
+    }
+}
 
 void processAllVectorOperations(std::ofstream& outputFile, int numParticles) {
     // Проходим по всем парам частиц, но начинаем со второй частицы внешнего цикла, чтобы исключить дубликаты
@@ -117,6 +211,40 @@ void processAllVectorOperations(std::ofstream& outputFile, int numParticles) {
     }
 }
 
+void dataFromFile(std::ofstream& outputFile,int t){
+        if (t != 0) 
+            {
+                calculateVerleCoord();
+                calculateVerleVelocity();
+            }
+
+        // Запись в файл
+        outputFile << "Step = "<< t << std::endl;
+        
+        // Запись векторов координат в файл
+        for (int i = 0; i < NUMBERPARTICLES; ++i) {
+            writeCoordinateVector(outputFile, i);
+        }
+
+        //запись всех операций над векторми
+        processAllVectorOperations(outputFile, NUMBERPARTICLES);
+        
+        writePotentialEnergy(outputFile);
+        writeForce(outputFile);    
+        writeForceVector(outputFile);    
+
+        for (int i = 0; i < NUMBERPARTICLES; ++i) {
+            writeParticleVelocity(outputFile, i);
+        }
+
+        if (t != 0) 
+		{
+            calculateVerleVelocity();
+		}
+        
+        outputFile << std::endl;
+}
+
 void write_to_file() {
     // Открытие файла для записи
     std::ofstream outputFile("Osada_MD_5.txt");
@@ -124,29 +252,20 @@ void write_to_file() {
         std::cerr << "Ошибка: не удалось открыть файл для записи\n";
         return;
     }
-    
-    // Установка точности для всего потока вывода
+
+     // Установка точности для всего потока вывода
     outputFile << std::fixed << std::setprecision(8);
-    
-    // Запись в файл
-    outputFile << "Step = 0" << std::endl;
-    
-    // Запись векторов координат в файл
-    for (int i = 0; i < NUMBERPARTICLES; ++i) {
-        writeCoordinateVector(outputFile, i);
-    }
 
-    processAllVectorOperations(outputFile, NUMBERPARTICLES);
+    for (int t = 0; t < NSTEPS; t++) 
+	{
 
-    // Вычисление и запись потенциальной энергии
-    writePotentialEnergy(outputFile, NUMBERPARTICLES);
-    
-    // Вычисление и запись сил
-    writeForces(outputFile);
-    
-    for (int i = 0; i < NUMBERPARTICLES; ++i) {
-        writeParticleVelocity(outputFile, i);
+        if ((t <= 99) || (t >= 1900))
+		{
+            dataFromFile(outputFile, t);
+		}
+        
     }
+    
     
     // Закрытие файла
     outputFile.close();
