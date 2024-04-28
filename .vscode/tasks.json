@@ -3,7 +3,7 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe сборка активного файла",
-            "command": "C:\\Strawberry\\c\\bin\\g++.exe",
+            "command": "C:\\Users\\Vladislav\\gcc\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
