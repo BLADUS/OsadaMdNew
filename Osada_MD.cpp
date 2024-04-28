@@ -83,9 +83,8 @@ void calculateForce(int index1, int index2, double distance)
 }
 
 // Метод для вычисления вектора силы по осям X, Y, Z
-void calculateForceVector(int index1, int index2)
+void calculateForceVector(int index1, int index2, double distance)
 {
-    double distance = calculateVectorAbsolute(index1, index2);
     // Вычисляем силу между частицами
     calculateForce(index1, index2, distance);
 
@@ -99,15 +98,12 @@ void calculateForceVector(int index1, int index2)
 }
 
 // Метод для вычисления потенциальной энергии между двумя частицами
-void calculatePotentialEnergy(int index1, int index2)
+void calculatePotentialEnergy(int index1, int index2, double distance)
 {
     // Вычисляем разность координат между частицами
     double diffx = coordx[index1] - coordx[index2];
     double diffy = coordy[index1] - coordy[index2];
     double diffz = coordz[index1] - coordz[index2];
-
-    // Вычисляем расстояние между частицами
-    double distance = std::sqrt(diffx * diffx + diffy * diffy + diffz * diffz);
 
     if (distance <= RCUT)
     {
@@ -153,24 +149,20 @@ void writeVectorDifference(std::ofstream &outputFile, int index1, int index2)
 {
     double diffx, diffy, diffz;
     std::tie(diffx, diffy, diffz) = calculateCoordinateDifference(index1, index2);
-
     outputFile << "r" << index1 + 1 << index2 + 1 << " = (rx" << index1 + 1 << "; ry" << index1 + 1 << "; rz" << index1 + 1 << ") = (" << diffx << "; " << diffy << "; " << diffz << ")" << std::endl;
 }
 
 // Запись абсолютного значения векторов
-void writeVectorAbsolute(std::ofstream &outputFile, int index1, int index2)
+void writeVectorAbsolute(std::ofstream &outputFile, int index1, int index2, double distance)
 {
-    double distance = calculateVectorAbsolute(index1, index2);
     outputFile << "r" << index1 + 1 << index2 + 1 << "_abs = " << distance << std::endl;
 }
 
 // Метод для записи информации о делении разности векторов на абсолютное значение
-void writeVectorDivision(std::ofstream &outputFile, int index1, int index2)
+void writeVectorDivision(std::ofstream &outputFile, int index1, int index2, double distance)
 {
-    double diffx, diffy, diffz;
+     double diffx, diffy, diffz;
     std::tie(diffx, diffy, diffz) = calculateCoordinateDifference(index1, index2);
-    double distance = calculateVectorAbsolute(index1, index2);
-
     // Запись разности векторов, деленной на абсолютное значение
     outputFile << "(rx" << index1 + 1 << index2 + 1 << "; ry" << index1 + 1 << index2 + 1 << "; rz" << index1 + 1 << index2 + 1 << ") / r" << index1 + 1 << index2 + 1 << "_abs = (" << diffx / distance << "; "
                << diffy / distance << "; "
@@ -186,13 +178,12 @@ void writeParticleVelocity(std::ofstream &outputFile, int index)
 }
 
 // Метод для записи силы между частицами в файл
-void writeForce(std::ofstream &outputFile)
+void writeForce(std::ofstream &outputFile, double distance)
 {
     for (int i = 0; i < NUMBERPARTICLES - 1; ++i)
     {
         for (int j = i + 1; j < NUMBERPARTICLES; ++j)
         {
-            double distance = sqrt(pow(coordx[i] - coordx[j], 2) + pow(coordy[i] - coordy[j], 2) + pow(coordz[i] - coordz[j], 2));
             calculateForce(i, j, distance);
             outputFile << "F" << " = " << F << "\n";
         }
@@ -206,7 +197,6 @@ void writeForceVector(std::ofstream &outputFile)
     {
         for (int j = i + 1; j < NUMBERPARTICLES; ++j)
         {
-            calculateForceVector(i, j);
             outputFile << "F" << i + 1 << " = (Fx" << i + 1 << "; Fy" << i + 1
                        << "; Fz" << i + 1 << ") = (" << Fx[i] << "; " << Fy[i] << "; " << Fz[i] << ")\n";
         }
@@ -221,51 +211,32 @@ void writePotentialEnergy(std::ofstream &outputFile)
     {
         for (int j = i + 1; j < NUMBERPARTICLES; ++j)
         {
-            // Вычисляем потенциальную энергию между частицами
-            calculatePotentialEnergy(i, j);
-
             // Записываем данные в файл
             outputFile << "U" << i + 1 << j + 1 << " = " << U << "\n"; // Запись потенциальной энергии между частицами
         }
     }
 }
 
-void processAllParticleVectorOperations(std::ofstream &outputFile, int numParticles)
+void write_data_step(std::ofstream &outputFile, int t, double distance)
 {
-    // Проходим по всем парам частиц, но начинаем со второй частицы внешнего цикла, чтобы исключить дубликаты
-    for (int i = 0; i < numParticles - 1; ++i)
-    {
-        for (int j = i + 1; j < numParticles; ++j)
-        {
-            // Записываем разность векторов и абсолютное значение разности
-            writeVectorDifference(outputFile, i, j);
-            writeVectorAbsolute(outputFile, i, j);
-            writeVectorDivision(outputFile, i, j);
-        }
-    }
-}
-
-void dataFromFile(std::ofstream &outputFile, int t)
-{
-    if (t != 0)
-    {
-        calculateVerleVelocity();
-        calculateVerleCoord();
-    }
-
-    // Запись в файл
     outputFile << "Step = " << t << std::endl;
-
-    // Запись векторов координат в файл
-    for (int i = 0; i < NUMBERPARTICLES; ++i)
+    for (int i = 0; i < NUMBERPARTICLES; i++)
     {
         writeCoordinateVector(outputFile, i);
     }
+    for (int i = 0; i < NUMBERPARTICLES - 1; ++i)
+    {
+        for (int j = i + 1; j < NUMBERPARTICLES; ++j)
+        {
+            // Записываем разность векторов и абсолютное значение разности
+            writeVectorDifference(outputFile, i, j);
+            writeVectorAbsolute(outputFile, i, j, distance);
+            writeVectorDivision(outputFile, i, j, distance);
+        }
+    }
 
-    // запись всех операций над векторми
-    processAllParticleVectorOperations(outputFile, NUMBERPARTICLES);
     writePotentialEnergy(outputFile);
-    writeForce(outputFile);
+    writeForce(outputFile, distance);
     writeForceVector(outputFile);
 
     for (int i = 0; i < NUMBERPARTICLES; ++i)
@@ -273,12 +244,36 @@ void dataFromFile(std::ofstream &outputFile, int t)
         writeParticleVelocity(outputFile, i);
     }
 
+    outputFile << std::endl;
+}
+
+void calculate_step(std::ofstream &outputFile, int t)
+{
+
+    if (t != 0)
+    {
+        calculateVerleCoord();
+        calculateVerleVelocity();
+    }
+
+    double distance = calculateVectorAbsolute(0, 1);
+    calculateForce(0, 1, distance);
+    calculatePotentialEnergy(0, 1, distance);
+
+    // Рассчитываем составляющие силы по осям X, Y, Z
+    Fx[0] = (F * (coordx[0] - coordx[1]) / distance) + 0.0;
+    Fy[0] = (F * (coordy[0] - coordy[1]) / distance) + 0.0;
+    Fz[0] = (F * (coordz[0] - coordz[1]) / distance) + 0.0;
+    Fx[1] = -Fx[0];
+    Fy[1] = -Fy[0];
+    Fz[1] = -Fz[0];
+
     if (t != 0)
     {
         calculateVerleVelocity();
     }
-
-    outputFile << std::endl;
+    
+    write_data_step(outputFile, t, distance);
 }
 
 void write_to_file()
@@ -293,14 +288,8 @@ void write_to_file()
 
     // Установка точности для всего потока вывода
     outputFile << std::fixed << std::setprecision(8);
-
-    for (int t = 0; t < NSTEPS; t++)
-    {
-
-        if ((t <= 99) || (t >= 1900))
-        {
-            dataFromFile(outputFile, t);
-        }
+    for(int t=0; t<NSTEPS; t++){
+        calculate_step(outputFile, t);
     }
 
     // Закрытие файла
