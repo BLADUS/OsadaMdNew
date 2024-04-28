@@ -1,5 +1,5 @@
 #pragma once
-const int NSTEPS = 2000; // число шагов
+const int NSTEPS = 1000; // число шагов
 const int LASTSTEP = NSTEPS - 1; // последний шаг
 
 // число элементарных ячеек (кристаллов) по осям координат

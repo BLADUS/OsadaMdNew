@@ -115,6 +115,42 @@ void calculatePotentialEnergy(int index1, int index2, double distance)
     }
 }
 
+void checkingBoundaryConditionCoordinates()
+{
+    for (int i = 0; i < NUMBERPARTICLES; i++)
+    {
+        // Проверка координаты x
+        if (coordx[i] >= LX)
+        {
+            coordx[i] -= LX;
+        }
+        else if (coordx[i] < 0.0)
+        {
+            coordx[i] += LX;
+        }
+
+        // Проверка координаты y
+        if (coordy[i] >= LY)
+        {
+            coordy[i] += -LY; // Отражение от верхней границы (можно изменить)
+        }
+        else if (coordy[i] < 0.0)
+        {
+            coordy[i] += LY; // Отражение от нижней границы (можно изменить)
+        }
+
+        // Проверка координаты z (аналогично x)
+        if (coordz[i] >= LZ)
+        {
+            coordz[i] -= LZ;
+        }
+        else if (coordz[i] < 0.0)
+        {
+            coordz[i] += LZ;
+        }
+    }
+}
+
 void calculateVerleCoord()
 {
     for (size_t i = 0; i < NUMBERPARTICLES; i++)
@@ -123,6 +159,7 @@ void calculateVerleCoord()
         coordy[i] = coordy[i] + vy[i] * STEP + Fy[i] * std::pow(STEP, 2) / (2 * MASS);
         coordz[i] = coordz[i] + vz[i] * STEP + Fz[i] * std::pow(STEP, 2) / (2 * MASS);
     }
+    checkingBoundaryConditionCoordinates();
 }
 
 void calculateVerleVelocity()
@@ -161,7 +198,7 @@ void writeVectorAbsolute(std::ofstream &outputFile, int index1, int index2, doub
 // Метод для записи информации о делении разности векторов на абсолютное значение
 void writeVectorDivision(std::ofstream &outputFile, int index1, int index2, double distance)
 {
-     double diffx, diffy, diffz;
+    double diffx, diffy, diffz;
     std::tie(diffx, diffy, diffz) = calculateCoordinateDifference(index1, index2);
     // Запись разности векторов, деленной на абсолютное значение
     outputFile << "(rx" << index1 + 1 << index2 + 1 << "; ry" << index1 + 1 << index2 + 1 << "; rz" << index1 + 1 << index2 + 1 << ") / r" << index1 + 1 << index2 + 1 << "_abs = (" << diffx / distance << "; "
@@ -185,7 +222,7 @@ void writeForce(std::ofstream &outputFile, double distance)
         for (int j = i + 1; j < NUMBERPARTICLES; ++j)
         {
             calculateForce(i, j, distance);
-            outputFile << "F" << " = " << F << "\n";
+            outputFile << "F" << i+1 << j+1 << " = " << F << "\n";
         }
     }
 }
@@ -228,10 +265,7 @@ void write_data_step(std::ofstream &outputFile, int t, double distance)
     {
         for (int j = i + 1; j < NUMBERPARTICLES; ++j)
         {
-            // Записываем разность векторов и абсолютное значение разности
-            writeVectorDifference(outputFile, i, j);
             writeVectorAbsolute(outputFile, i, j, distance);
-            writeVectorDivision(outputFile, i, j, distance);
         }
     }
 
@@ -272,14 +306,16 @@ void calculate_step(std::ofstream &outputFile, int t)
     {
         calculateVerleVelocity();
     }
-    
-    write_data_step(outputFile, t, distance);
+
+    if (t <= 99 || t >= 900){
+        write_data_step(outputFile, t, distance);
+    }
 }
 
 void write_to_file()
 {
     // Открытие файла для записи
-    std::ofstream outputFile("Osada_MD_5.txt");
+    std::ofstream outputFile("Osada_MD_7.txt");
     if (!outputFile.is_open())
     {
         std::cerr << "Ошибка: не удалось открыть файл для записи\n";
@@ -288,7 +324,8 @@ void write_to_file()
 
     // Установка точности для всего потока вывода
     outputFile << std::fixed << std::setprecision(8);
-    for(int t=0; t<NSTEPS; t++){
+    for (int t = 0; t < NSTEPS; t++)
+    {
         calculate_step(outputFile, t);
     }
 

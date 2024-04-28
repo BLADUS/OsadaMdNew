@@ -1,6 +1,0 @@
-
-Number of Particles = 2
-Number of Steps = 10
-Size of System on X = 2
-Boltzmann Constant = 1.3806485
-Volume = 8
